@@ -269,7 +269,7 @@ while True:
 
             #I will send this object into a database with the hash as primary key
         
-    logging.info("cleaning up memory")
+    logging.warning("cleaning up memory")
     current_list = []
     for doc in nonAjustables:
             current_list.append(doc.hashstr)
@@ -281,7 +281,7 @@ while True:
 
     
     rand = random.randint(30,35)
-    print (f"sleeping for {rand!s} seconds")
+    logging.warning(f"sleeping for {rand!s} seconds")
 
     time.sleep(rand)        
 

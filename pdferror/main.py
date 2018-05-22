@@ -56,7 +56,7 @@ class notAdjustable(object):
         }
         
 nonAjustables = []
-s = redis.StrictRedis(host='redis-rcsl', port=6379, db=2)
+s = redis.StrictRedis(host='redis-rcsl', port=6379, db=8)
 r = redis.StrictRedis(host='redis-rcsl', port=6379, db=1)
 browser = Firefox(options=opts)
 status = {'login':False, 'doclist':False,'docinfo':False}
@@ -73,13 +73,13 @@ def login(browser):
         browser.get(url)
         try:
             username_input = browser.find_element_by_id('username')
-            status.update({'login':True}}
-            s.update('status', status)
+            status.update({'login':True})
+            s.set('status', status)
 
         except:
             logging.error('cannot find login field, probably iam platform problem.')
-            status.update({'login':False}}
-            s.update('status', status)
+            status.update({'login':False})
+            s.set('status', status)
             time.sleep(10)
 
             continue
@@ -112,12 +112,12 @@ while True:
     
     try:
         startdate_input =browser.find_element_by_id("START_DATE")
-        status.update({'doclist':True}}
+        status.update({'doclist':True})
         logging.warning("Document List Successful")
-        s.update('status', status)
+        s.set('status', status)
     except:
-        status.update({'doclist':False}}
-        s.update('status', status)
+        status.update({'doclist':False})
+        s.set('status', status)
         time.sleep(10)
 
         logging.error("Failed")
@@ -148,11 +148,11 @@ while True:
     #the following can fail if the intranet is down, which then crashes the script.
     try:
         rows = bs_obj.find('table',{'id':'SEAL_DOCUMENT_TRACKING'}).find('tbody').find_all('tr')
-        status.update({'docinfo':True}}
-        s.update('status', status)
+        status.update({'docinfo':True})
+        s.set('status', status)
     except:
-        status.update({'docinfo':False}}
-        s.update('status', status)
+        status.update({'docinfo':False})
+        s.set('status', status)
         time.sleep(10)
 
         logging.error("Failed")

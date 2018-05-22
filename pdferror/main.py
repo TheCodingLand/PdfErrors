@@ -53,32 +53,42 @@ class notAdjustable(object):
         
 nonAjustables = []
 r = redis.StrictRedis(host='redis-rcsl', port=6379, db=1)
+browser = Firefox(options=opts)
 
-
-def login():
-    browser = Firefox(options=opts)
-
-    url = "https://login.intranet.etat.lu/login/TAMLoginServlet?TAM_OP=cert_login&AUTHNLEVEL=&ERROR_CODE=0x00000000&ERROR_TEXT=Successful+completion&FAILREASON=&HOSTNAME=mjrcs.intranet.etat.lu&METHOD=GET&PROTOCOL=https&REFERER=https%3A%2F%2Flogin.intranet.etat.lu%2Flogin%2FTAMLoginServlet%3FTAM_OP%3Dlogout%26USERNAME%3Dcop358%26ERROR_CODE%3D0x00000000%26ERROR_TEXT%3DSuccessful%2520completion%26METHOD%3DGET%26URL%3D%252Fpkmslogout%253Flogout-link%253D%252Fmjrcs-intranet%252Fjsp%252Fsecured%252FIndexActionSecured.action%253Ftime%253D1524039296922%26REFERER%3Dhttps%253A%252F%252Fmjrcs.intranet.etat.lu%252Fmjrcs-intranet%252Fjsp%252Fsecured%252FLogoutHomeAction.action%26HOSTNAME%3Dmjrcs.intranet.etat.lu%26AUTHNLEVEL%3D%26FAILREASON%3D%26PROTOCOL%3Dhttps&URL=%2Fmjrcs-intranet%2Fjsp%2Fsecured%2FIndexActionSecured.action%3Ftime%3D1524039296922&redirectUrl=https%3A%2F%2Fmjrcs.intranet.etat.lu%2Fmjrcs-intranet%2Fjsp%2Fsecured%2FIndexActionSecured.action%3F&authMode=UP"
-
+def login(browser):
     
-    browser.get(url)
+    loggedin = False
+    while loggedin == False:
 
-    username_input = browser.find_element_by_id('username')
-    password_input = browser.find_element_by_id('password')
-    u=os.environ['IAM_USER']
-    p=os.environ['IAM_PASSWORD']
+        url = "https://login.intranet.etat.lu/login/TAMLoginServlet?TAM_OP=cert_login&AUTHNLEVEL=&ERROR_CODE=0x00000000&ERROR_TEXT=Successful+completion&FAILREASON=&HOSTNAME=mjrcs.intranet.etat.lu&METHOD=GET&PROTOCOL=https&REFERER=https%3A%2F%2Flogin.intranet.etat.lu%2Flogin%2FTAMLoginServlet%3FTAM_OP%3Dlogout%26USERNAME%3Dcop358%26ERROR_CODE%3D0x00000000%26ERROR_TEXT%3DSuccessful%2520completion%26METHOD%3DGET%26URL%3D%252Fpkmslogout%253Flogout-link%253D%252Fmjrcs-intranet%252Fjsp%252Fsecured%252FIndexActionSecured.action%253Ftime%253D1524039296922%26REFERER%3Dhttps%253A%252F%252Fmjrcs.intranet.etat.lu%252Fmjrcs-intranet%252Fjsp%252Fsecured%252FLogoutHomeAction.action%26HOSTNAME%3Dmjrcs.intranet.etat.lu%26AUTHNLEVEL%3D%26FAILREASON%3D%26PROTOCOL%3Dhttps&URL=%2Fmjrcs-intranet%2Fjsp%2Fsecured%2FIndexActionSecured.action%3Ftime%3D1524039296922&redirectUrl=https%3A%2F%2Fmjrcs.intranet.etat.lu%2Fmjrcs-intranet%2Fjsp%2Fsecured%2FIndexActionSecured.action%3F&authMode=UP"
 
-    if username_input:
-        username_input.send_keys(u)
-    if password_input:
-        password_input.send_keys(p)
+        
+        browser.get(url)
+        try:
+            username_input = browser.find_element_by_id('username')
+        except:
+            logging.error('cannot find login field, probably iam platform problem.')
+            time.sleep(10)
+            continue
 
-    button_submit=browser.find_element_by_id('connection')
-    button_submit.click()
+            
+        
+        password_input = browser.find_element_by_id('password')
+        u=os.environ['IAM_USER']
+        p=os.environ['IAM_PASSWORD']
+
+        if username_input:
+            username_input.send_keys(u)
+        if password_input:
+            password_input.send_keys(p)
+
+        button_submit=browser.find_element_by_id('connection')
+        button_submit.click()
+        loggedin=True
     return browser
 
 
-browser = login()
+browser = login(browser)
 
 
 while True:
@@ -92,7 +102,7 @@ while True:
     except:
         time.sleep(10)
         logging.error("Failed")
-        browser = login()
+        browser = login(browser)
         continue
 
     startdate_input.clear()
@@ -116,7 +126,15 @@ while True:
 
 
     bs_obj = BSoup(browser.page_source, 'html.parser')
-    rows = bs_obj.find('table',{'id':'SEAL_DOCUMENT_TRACKING'}).find('tbody').find_all('tr')
+    #the following can fail if the intranet is down, which then crashes the script.
+    try:
+        rows = bs_obj.find('table',{'id':'SEAL_DOCUMENT_TRACKING'}).find('tbody').find_all('tr')
+    except:
+        time.sleep(10)
+        logging.error("Failed")
+        browser = login(browser)
+        continue
+        
 
     #list of already known hash strings of last modification datetime + doc title to avoid querying error messages 
     #for docments we already know about

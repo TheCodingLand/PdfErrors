@@ -16,7 +16,11 @@ opts.set_headless()
 assert opts.headless  # operating in headless mode
 import os
 import logging
+
 import hashlib
+
+
+
 
 class notAdjustable(object):
     lastmod= ""
@@ -52,8 +56,11 @@ class notAdjustable(object):
         }
         
 nonAjustables = []
+s = redis.StrictRedis(host='redis-rcsl', port=6379, db=2)
 r = redis.StrictRedis(host='redis-rcsl', port=6379, db=1)
 browser = Firefox(options=opts)
+status = {'login':False, 'doclist':False,'docinfo':False}
+s.set('status', status)
 
 def login(browser):
     
@@ -66,9 +73,15 @@ def login(browser):
         browser.get(url)
         try:
             username_input = browser.find_element_by_id('username')
+            status.update({'login':True}}
+            s.update('status', status)
+
         except:
             logging.error('cannot find login field, probably iam platform problem.')
+            status.update({'login':False}}
+            s.update('status', status)
             time.sleep(10)
+
             continue
 
             
@@ -95,12 +108,18 @@ while True:
     
     logging.warning("Querying document list :")
     browser.get("https://mjrcs.intranet.etat.lu/mjrcs-intranet/jsp/secured/ListSealDocumentTrackingAction.action?FROM=FROM_MAIN_MENU")    
+
     
     try:
         startdate_input =browser.find_element_by_id("START_DATE")
+        status.update({'doclist':True}}
         logging.warning("Document List Successful")
+        s.update('status', status)
     except:
+        status.update({'doclist':False}}
+        s.update('status', status)
         time.sleep(10)
+
         logging.error("Failed")
         browser = login(browser)
         continue
@@ -129,8 +148,13 @@ while True:
     #the following can fail if the intranet is down, which then crashes the script.
     try:
         rows = bs_obj.find('table',{'id':'SEAL_DOCUMENT_TRACKING'}).find('tbody').find_all('tr')
+        status.update({'docinfo':True}}
+        s.update('status', status)
     except:
+        status.update({'docinfo':False}}
+        s.update('status', status)
         time.sleep(10)
+
         logging.error("Failed")
         browser = login(browser)
         continue
@@ -141,15 +165,15 @@ while True:
     hashstrs = []
     for obj in nonAjustables:
         hashstrs.append(obj.hashstr)
-    
     logging.warning(f"Memory containts {len(hashstrs)!s}")
+
+    current_list=[]
     
-    for row in rows:
-        
-            
+    for row in rows:        
         cells = row.find_all('td')
         error = cells[8].get_text() 
         if error =="Non ajustable":
+            
             doc = notAdjustable()
             doc.error=error
             doc.name = cells[5].get_text()
@@ -159,6 +183,7 @@ while True:
             doc.lxt = cells[2].get_text()
             id = f"{doc.name!s}{doc.lastmod!s}{doc.size!s}".encode()
             doc.hashstr = f"{hashlib.sha256(id).hexdigest()!s}"
+            current_list.append(doc.hashstr)
             
             tdlink = cells[1]
             link = tdlink.find("a")            
@@ -167,15 +192,8 @@ while True:
             doc.number = inner[42:43]
             
 
-                    
-
-
-    
             if doc.hashstr not in hashstrs:
-                nonAjustables.append(doc)
-                
-        
-                
+                nonAjustables.append(doc)    
                 doc.errormessages = []
                 logging.warning(f"Getting new file info {doc.name!s}")
                 browser.get(f"https://mjrcs.intranet.etat.lu/mjrcs-intranet/jsp/secured/ListSealDocumentTrackingDetailAction.action?idDossierSealDocument={doc.filing!s}&numDocSealDocument={doc.number!s}")
@@ -224,6 +242,11 @@ while True:
                             #print (f"{doc.name!s} : {link.get_attribute('innerHTML')!s}")
                 doc.errormessages = messages
                 
+    for doc in nonAjustables:
+        if doc.hashstr not in current_list:
+            logging.warning("removed 1 doc from memory")
+            nonAjustables.remove(doc)
+        
 
     
     for doc in nonAjustables:
@@ -269,13 +292,6 @@ while True:
 
             #I will send this object into a database with the hash as primary key
         
-    logging.warning("cleaning up memory")
-    current_list = []
-    for doc in nonAjustables:
-            current_list.append(doc.hashstr)
-    for h in hashstrs:
-        if h not in current_list:
-            hashstrs.remove(h)
     
     
 

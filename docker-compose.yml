@@ -28,12 +28,13 @@ services:
       - "traefik.frontend.rule=Host:pdf.lbr.lu"
       - "traefik.frontend.entryPoints=http"
     depends_on:
-      - postgres
+      - postgres-pdf
     networks:
       - web
+    restart: always
 
 
-  postgres:
+  postgres-pdf:
     restart: always
     image: postgres:latest
     ports:
@@ -58,7 +59,7 @@ services:
 
   poll-errors-intranet:
     build: ./pdferror
-
+    restart: always
     environment:
       - IAM_USER=${IAM_USER}
       - IAM_PASSWORD=${IAM_PASSWORD}

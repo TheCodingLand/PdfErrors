@@ -8,7 +8,7 @@ django.setup()
 from pdfapp.models import PDF, Error
 r = redis.StrictRedis(host='redis-rcsl', port=6379, db=1)
 
-
+logging.warning("starting Script for redis import")
 while True:
     
     keys = r.keys('*')
@@ -20,6 +20,9 @@ while True:
         except:
             r.delete(key)
         pdf, created = PDF.objects.get_or_create(hashstr=filedict['hash'])
+        if created == False:
+            logging.warning("creating file in db")
+
         pdf.name = filedict['name']
         pdf.producer = filedict['producer']
         pdf.tool = filedict['tool']

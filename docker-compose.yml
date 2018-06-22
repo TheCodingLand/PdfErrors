@@ -13,11 +13,11 @@ services:
       - SUPER_USER=${SUPER_USER}
       - SUPER_USER_PASSWORD=${SUPER_USER_PASSWORD}
       - SUPER_USER_EMAIL=${SUPER_USER_EMAIL}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_SERVICE=${DB_SERVICE}
-      - DB_PORT=${DB_PORT}
+      - DB_NAME=${PDFERROR_DB_NAME}
+      - DB_USER=${PDFERROR_DB_USER}
+      - DB_PASS=${PDFERROR_DB_PASS}
+      - DB_SERVICE=${PDFERROR_DB_SERVICE}
+      - DB_PORT=${PDFERROR_DB_PORT}
     volumes:
       - ./pdflist:/data/pdflist
     
@@ -40,9 +40,9 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${PDFERROR_DB_NAME}
+      - POSTGRES_USER=${PDFERROR_DB_USER}
+      - POSTGRES_PASSWORD=${PDFERROR_DB_PASS}
     labels:
       - "traefik.docker.network=web"
       - "traefik.frontend.rule=Host:pdfdb.lbr.lu"
